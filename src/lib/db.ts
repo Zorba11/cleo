@@ -484,6 +484,7 @@ export async function getProjectWithPlanningData(
         frames: {
           orderBy: { index: 'asc' },
         },
+        cues: true,
         assets: {
           where: {
             type: 'DOC',
