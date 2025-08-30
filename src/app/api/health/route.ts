@@ -1,29 +1,49 @@
 import { NextResponse } from 'next/server';
 import { checkDatabaseConnection } from '@/lib/db';
+import { checkR2Connection } from '@/lib/storage';
 
 export async function GET() {
   try {
     // Check database connectivity
     const dbHealthy = await checkDatabaseConnection();
     
+    // Check R2 connectivity
+    let storageHealthy = false;
+    let storageError = null;
+    
+    try {
+      storageHealthy = await checkR2Connection();
+    } catch (error) {
+      storageError = error instanceof Error ? error.message : 'Unknown storage error';
+      console.warn('Storage health check failed:', storageError);
+    }
+    
     // Check environment variables
     const hasClerkKeys = !!(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY);
     const hasDatabaseUrl = !!process.env.DATABASE_URL;
+    const hasR2Config = !!(
+      (process.env.CLOUDFLARE_R2_ENDPOINT || process.env.R2_ENDPOINT) &&
+      (process.env.CLOUDFLARE_R2_ACCESS_KEY_ID || process.env.R2_ACCESS_KEY_ID) &&
+      (process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY || process.env.R2_SECRET_ACCESS_KEY) &&
+      (process.env.CLOUDFLARE_R2_BUCKET_NAME || process.env.R2_BUCKET)
+    );
     
     const healthStatus = {
-      status: (dbHealthy && hasClerkKeys && hasDatabaseUrl) ? 'healthy' : 'degraded',
+      status: (dbHealthy && hasClerkKeys && hasDatabaseUrl && storageHealthy) ? 'healthy' : 'degraded',
       timestamp: new Date().toISOString(),
       services: {
         api: 'operational',
         database: dbHealthy ? 'operational' : 'unavailable',
         auth: hasClerkKeys ? 'configured' : 'not_configured',
-        storage: 'not_configured'  // Will update in Phase 2
+        storage: storageHealthy ? 'operational' : (hasR2Config ? 'unavailable' : 'not_configured')
       },
       environment: {
         node_env: process.env.NODE_ENV,
         database_configured: hasDatabaseUrl,
-        auth_configured: hasClerkKeys
-      }
+        auth_configured: hasClerkKeys,
+        storage_configured: hasR2Config
+      },
+      ...(storageError && { storage_error: storageError })
     };
 
     const statusCode = healthStatus.status === 'healthy' ? 200 : 503;
