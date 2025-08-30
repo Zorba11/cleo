@@ -7,6 +7,7 @@ A modular explainer video generation system built with Next.js, TypeScript, Pris
 ## Architecture
 
 ### Core Components
+
 1. **Planner** - GPT-style LLM for dialogue generation, beat sheets, style bible
 2. **Narration** - ElevenLabs TTS with timestamp alignment
 3. **Cue Sheet** - Timeline mapping for frames and text overlays
@@ -14,6 +15,7 @@ A modular explainer video generation system built with Next.js, TypeScript, Pris
 5. **Assembly** - Video stitching with audio and overlays
 
 ### Tech Stack
+
 - **Frontend**: Next.js 15 + TypeScript + Tailwind CSS
 - **Auth**: Clerk (email/OAuth)
 - **Database**: Neon Postgres via Prisma
@@ -22,6 +24,7 @@ A modular explainer video generation system built with Next.js, TypeScript, Pris
 - **Package Manager**: pnpm
 
 ### Data Flow
+
 ```
 Topic Input → Planner → Beat Sheet + Style Bible
          ↓
@@ -35,6 +38,7 @@ Topic Input → Planner → Beat Sheet + Style Bible
 ```
 
 ### R2 Storage Structure
+
 ```
 /projects/{projectId}/
   plan/
@@ -59,63 +63,86 @@ Topic Input → Planner → Beat Sheet + Style Bible
 ## Status Tracking
 
 ### Project States
+
 1. **PLANNED** - Planning phase complete
-2. **NARRATED** - Audio generation complete  
+2. **NARRATED** - Audio generation complete
 3. **ALIGNED** - Timestamp alignment complete
 4. **CUES_READY** - Cue sheet generated
 5. **FRAMES_READY** - Visual frames complete
 6. **ASSEMBLED** - Final video rendered
 
 ### Quality Gates
+
 Each phase requires approval before proceeding to the next stage.
 
 ## Development Phases
 
 ### Phase 0 - Repo & Docs ✅
+
 - [x] Next.js scaffold with TypeScript + Tailwind
 - [x] Prisma configuration with data models
 - [x] Documentation structure
-- [ ] Health check route
-- [ ] Environment configuration
+- [x] Health check route
+- [x] Environment configuration
 
 ### Phase 1 - Auth & DB
-- [ ] Clerk integration (SSR + client)
-- [ ] Database connection and migrations
-- [ ] Test user/project seeding
+
+- [x] Clerk integration (SSR + client)
+- [x] Database connection and migrations
+- [x] Test user/project seeding
 
 ### Phase 2 - Storage & R2 SDK
-- [ ] R2 client configuration
-- [ ] File upload/download helpers
-- [ ] Signed URL generation
+
+- [x] R2 client configuration
+- [x] File upload/download helpers
+- [x] Signed URL generation
 
 ### Phase 3 - Planner API
-- [ ] LLM integration for planning
-- [ ] Beat sheet generation
-- [ ] Style bible creation
+
+- [x] LLM integration for planning
+- [x] Beat sheet generation
+- [x] Style bible creation
+- [x] Plan artifacts saved to R2 (ProjectPlan.json, StyleBible.min.json)
+- [x] Plan files recorded as DOC assets and shown in UI
+- [x] Project page actions: Generate Plan, View Full Plan JSON
+- [x] Frames bootstrap: materialize frame placeholders from `plannedFrames`
+
+#### API Surface (Phase 3)
+
+- POST `/api/plan` — Generate plan via GPT‑5, store artifacts, write beats/style bible
+- GET `/api/plan/test` — Return mock plan for testing (no tokens)
+- POST `/api/plan/test` — Same as above with random topic
+- GET `/api/projects/[id]/plan` — Fetch `ProjectPlan.json` from R2
+- POST `/api/projects/[id]/frames` — Create placeholder frames (indices 1..N) per beat
 
 ### Phase 4 - Narration
+
 - [ ] ElevenLabs TTS integration
 - [ ] Per-beat audio generation
 - [ ] Timestamp alignment
 
 ### Phase 5 - Cue Sheet
+
 - [ ] Timeline calculation
 - [ ] Frame window mapping
 - [ ] Text overlay timing
 
 ### Phase 6 - Frames
+
 - [ ] Gemini 2.5 Flash integration
 - [ ] Base frame generation
 - [ ] Iterative editing
 - [ ] Validation loops
 
 ### Phase 7 - Assembly
+
 - [ ] Video stitching
 - [ ] Audio overlay
 - [ ] Text rendering
 - [ ] Final MP4 export
 
 ### Phase 8 - E2E Demo
+
 - [ ] End-to-end pipeline test
 - [ ] Demo video generation
 - [ ] Performance validation

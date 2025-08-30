@@ -100,6 +100,7 @@ export default function ProjectDetailClient({
   const [fullPlan, setFullPlan] = useState<any | null>(null);
   const [fullPlanLoading, setFullPlanLoading] = useState(false);
   const [framesBusy, setFramesBusy] = useState(false);
+  const [planOpen, setPlanOpen] = useState(true);
 
   const { user } = useUser();
   const router = useRouter();
@@ -393,117 +394,129 @@ export default function ProjectDetailClient({
         project.beats &&
         project.beats.length > 0 && (
           <div className="mb-8 bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">
-              Plan Details
-            </h2>
-
-            {/* Plan Overview */}
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center mb-2">
-                <svg
-                  className="h-5 w-5 text-green-400 mr-2"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <h3 className="text-sm font-medium text-green-800">
-                  Plan Generated
-                </h3>
-              </div>
-              <div className="text-sm text-green-700">
-                <p>
-                  <strong>Visual Beats:</strong> {project.beats.length} beats
-                </p>
-                <p>
-                  <strong>Total Duration:</strong>{' '}
-                  {project.beats.reduce(
-                    (sum, beat) => sum + (beat.durationS || 0),
-                    0
-                  )}
-                  s
-                </p>
-                <p>
-                  <strong>Planned Frames:</strong>{' '}
-                  {project.beats.reduce(
-                    (sum, beat) => sum + (beat.plannedFrames || 0),
-                    0
-                  )}{' '}
-                  total
-                </p>
-                <button
-                  onClick={handleViewFullPlan}
-                  className="mt-3 inline-flex items-center px-3 py-1.5 rounded-md bg-indigo-600 text-white text-xs hover:bg-indigo-700 disabled:bg-gray-400"
-                  disabled={fullPlanLoading}
-                >
-                  {fullPlanLoading ? 'Loading Plan…' : 'View Full Plan JSON'}
-                </button>
-                <button
-                  onClick={handleCreateFrames}
-                  className="mt-3 ml-2 inline-flex items-center px-3 py-1.5 rounded-md bg-purple-600 text-white text-xs hover:bg-purple-700 disabled:bg-gray-400"
-                  disabled={framesBusy}
-                >
-                  {framesBusy ? 'Creating Frames…' : 'Materialize Frames'}
-                </button>
-              </div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium text-gray-900">
+                Plan Details
+              </h2>
+              <button
+                onClick={() => setPlanOpen((v) => !v)}
+                aria-expanded={planOpen}
+                className="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200"
+              >
+                {planOpen ? 'Hide' : 'Show'}
+              </button>
             </div>
 
-            {/* Visual Beats */}
-            <div className="mb-6">
-              <h3 className="text-md font-medium text-gray-900 mb-3">
-                Visual Beats
-              </h3>
-              <div className="space-y-3">
-                {project.beats.map((beat) => (
-                  <div
-                    key={beat.id}
-                    className="border rounded-lg p-4 bg-gray-50"
+            {planOpen && (
+              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center mb-2">
+                  <svg
+                    className="h-5 w-5 text-green-400 mr-2"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-medium text-gray-900">
-                        Beat {beat.index}
-                      </h4>
-                      <span className="text-sm text-gray-500">
-                        {beat.durationS}s
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-700 mb-2">{beat.summary}</p>
-                    {beat.onScreenText && (
-                      <p className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                        📝 {beat.onScreenText}
-                      </p>
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <h3 className="text-sm font-medium text-green-800">
+                    Plan Generated
+                  </h3>
+                </div>
+                <div className="text-sm text-green-700">
+                  <p>
+                    <strong>Visual Beats:</strong> {project.beats.length} beats
+                  </p>
+                  <p>
+                    <strong>Total Duration:</strong>{' '}
+                    {project.beats.reduce(
+                      (sum, beat) => sum + (beat.durationS || 0),
+                      0
                     )}
-                    {beat.plannedFrames && (
-                      <p className="text-xs text-purple-600 mt-1">
-                        🎬 {beat.plannedFrames} frames planned
-                      </p>
-                    )}
-                    {project.frames && project.frames.length > 0 && (
-                      <div className="mt-2 grid grid-cols-6 gap-2">
-                        {project.frames
-                          .filter((f) => f.beatId === beat.id)
-                          .map((f) => (
-                            <div
-                              key={f.id}
-                              className="h-10 bg-white border rounded flex items-center justify-center text-[10px] text-gray-500"
-                            >
-                              F{f.index}
-                            </div>
-                          ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                    s
+                  </p>
+                  <p>
+                    <strong>Planned Frames:</strong>{' '}
+                    {project.beats.reduce(
+                      (sum, beat) => sum + (beat.plannedFrames || 0),
+                      0
+                    )}{' '}
+                    total
+                  </p>
+                  <button
+                    onClick={handleViewFullPlan}
+                    className="mt-3 inline-flex items-center px-3 py-1.5 rounded-md bg-indigo-600 text-white text-xs hover:bg-indigo-700 disabled:bg-gray-400"
+                    disabled={fullPlanLoading}
+                  >
+                    {fullPlanLoading ? 'Loading Plan…' : 'View Full Plan JSON'}
+                  </button>
+                  <button
+                    onClick={handleCreateFrames}
+                    className="mt-3 ml-2 inline-flex items-center px-3 py-1.5 rounded-md bg-purple-600 text-white text-xs hover:bg-purple-700 disabled:bg-gray-400"
+                    disabled={framesBusy}
+                  >
+                    {framesBusy ? 'Creating Frames…' : 'Materialize Frames'}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Full Plan JSON viewer */}
-            {fullPlan && (
+            {planOpen && (
+              <div className="mb-6">
+                <h3 className="text-md font-medium text-gray-900 mb-3">
+                  Visual Beats
+                </h3>
+                <div className="space-y-3">
+                  {project.beats.map((beat) => (
+                    <div
+                      key={beat.id}
+                      className="border rounded-lg p-4 bg-gray-50"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-medium text-gray-900">
+                          Beat {beat.index}
+                        </h4>
+                        <span className="text-sm text-gray-500">
+                          {beat.durationS}s
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700 mb-2">
+                        {beat.summary}
+                      </p>
+                      {beat.onScreenText && (
+                        <p className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                          📝 {beat.onScreenText}
+                        </p>
+                      )}
+                      {beat.plannedFrames && (
+                        <p className="text-xs text-purple-600 mt-1">
+                          🎬 {beat.plannedFrames} frames planned
+                        </p>
+                      )}
+                      {project.frames && project.frames.length > 0 && (
+                        <div className="mt-2 grid grid-cols-6 gap-2">
+                          {project.frames
+                            .filter((f) => f.beatId === beat.id)
+                            .map((f) => (
+                              <div
+                                key={f.id}
+                                className="h-10 bg-white border rounded flex items-center justify-center text-[10px] text-gray-500"
+                              >
+                                F{f.index}
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {planOpen && fullPlan && (
               <div className="mb-6">
                 <h3 className="text-md font-medium text-gray-900 mb-3">
                   Full Plan
@@ -514,71 +527,71 @@ export default function ProjectDetailClient({
               </div>
             )}
 
-            {/* Style Bible */}
-            {project.styleBibles && project.styleBibles.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-md font-medium text-gray-900 mb-3">
-                  Style Bible
-                </h3>
-                <div className="border rounded-lg p-4 bg-gray-50">
-                  {(() => {
-                    const styleBible = project.styleBibles[0].json;
-                    return (
-                      <div className="space-y-3">
-                        <div>
-                          <h4 className="font-medium text-gray-900">
-                            Visual Style
-                          </h4>
-                          <p className="text-sm text-gray-700">
-                            {styleBible.visualStyle}
-                          </p>
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">
-                            Color Palette
-                          </h4>
-                          <div className="flex space-x-2 mt-1">
-                            {styleBible.colorPalette?.map(
-                              (color: string, index: number) => (
-                                <div
-                                  key={index}
-                                  className="flex items-center space-x-1"
-                                >
+            {planOpen &&
+              project.styleBibles &&
+              project.styleBibles.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-md font-medium text-gray-900 mb-3">
+                    Style Bible
+                  </h3>
+                  <div className="border rounded-lg p-4 bg-gray-50">
+                    {(() => {
+                      const styleBible = project.styleBibles[0].json;
+                      return (
+                        <div className="space-y-3">
+                          <div>
+                            <h4 className="font-medium text-gray-900">
+                              Visual Style
+                            </h4>
+                            <p className="text-sm text-gray-700">
+                              {styleBible.visualStyle}
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-gray-900">
+                              Color Palette
+                            </h4>
+                            <div className="flex space-x-2 mt-1">
+                              {styleBible.colorPalette?.map(
+                                (color: string, index: number) => (
                                   <div
-                                    className="w-4 h-4 rounded border"
-                                    style={{ backgroundColor: color }}
-                                  ></div>
-                                  <span className="text-xs text-gray-600">
-                                    {color}
-                                  </span>
-                                </div>
-                              )
-                            )}
+                                    key={index}
+                                    className="flex items-center space-x-1"
+                                  >
+                                    <div
+                                      className="w-4 h-4 rounded border"
+                                      style={{ backgroundColor: color }}
+                                    ></div>
+                                    <span className="text-xs text-gray-600">
+                                      {color}
+                                    </span>
+                                  </div>
+                                )
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-gray-900">
+                              Typography
+                            </h4>
+                            <p className="text-sm text-gray-700">
+                              {styleBible.typography}
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-gray-900">Mood</h4>
+                            <p className="text-sm text-gray-700">
+                              {styleBible.mood}
+                            </p>
                           </div>
                         </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">
-                            Typography
-                          </h4>
-                          <p className="text-sm text-gray-700">
-                            {styleBible.typography}
-                          </p>
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">Mood</h4>
-                          <p className="text-sm text-gray-700">
-                            {styleBible.mood}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })()}
+                      );
+                    })()}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Plan Files */}
-            {project.assets && project.assets.length > 0 && (
+            {planOpen && project.assets && project.assets.length > 0 && (
               <div>
                 <h3 className="text-md font-medium text-gray-900 mb-3">
                   Plan Files
