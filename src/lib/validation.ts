@@ -136,7 +136,7 @@ export function validateMimeType(
   
   const allowedTypes = ALLOWED_MIME_TYPES[assetType];
   
-  if (!allowedTypes.includes(mimeType as any)) {
+  if (!allowedTypes.includes(mimeType as never)) {
     result.isValid = false;
     result.errors.push(
       `MIME type "${mimeType}" is not allowed for ${assetType} files. Allowed types: ${allowedTypes.join(', ')}`
@@ -160,7 +160,7 @@ export function validateFileExtension(
   const extension = getFileExtension(filename);
   const allowedExtensions = ALLOWED_EXTENSIONS[assetType];
   
-  if (!allowedExtensions.includes(extension as any)) {
+  if (!allowedExtensions.includes(extension as never)) {
     result.isValid = false;
     result.errors.push(
       `File extension "${extension}" is not allowed for ${assetType} files. Allowed extensions: ${allowedExtensions.join(', ')}`
@@ -276,10 +276,10 @@ export function generateSafeFilename(originalName: string): string {
 export function inferAssetTypeFromFilename(filename: string): AssetType | null {
   const extension = getFileExtension(filename);
   
-  if (ALLOWED_EXTENSIONS.AUDIO.includes(extension as any)) return 'AUDIO';
-  if (ALLOWED_EXTENSIONS.VIDEO.includes(extension as any)) return 'VIDEO';
-  if (ALLOWED_EXTENSIONS.FRAME.includes(extension as any)) return 'FRAME';
-  if (ALLOWED_EXTENSIONS.DOC.includes(extension as any)) return 'DOC';
+  if (ALLOWED_EXTENSIONS.AUDIO.includes(extension as never)) return 'AUDIO';
+  if (ALLOWED_EXTENSIONS.VIDEO.includes(extension as never)) return 'VIDEO';
+  if (ALLOWED_EXTENSIONS.FRAME.includes(extension as never)) return 'FRAME';
+  if (ALLOWED_EXTENSIONS.DOC.includes(extension as never)) return 'DOC';
   if (extension === '.json' && filename.includes('align')) return 'ALIGN';
   if (extension === '.json' && filename.includes('cue')) return 'CUE';
   

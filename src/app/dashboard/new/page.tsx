@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createProject } from '@/lib/db';
+// New project creation page functionality
 import { useUser } from '@clerk/nextjs';
 
 export default function NewProjectPage() {
@@ -176,7 +176,7 @@ export default function NewProjectPage() {
                 <li>Timeline and structure recommendations</li>
               </ul>
               <p className="mt-2">
-                You'll be able to review and approve each phase before moving to the next step.
+                You&apos;ll be able to review and approve each phase before moving to the next step.
               </p>
             </div>
           </div>

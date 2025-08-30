@@ -157,7 +157,7 @@ export async function POST() {
     
     const testResults = {
       connection: false,
-      assetTests: {} as Record<string, any>
+      assetTests: {} as Record<string, unknown>
     };
     
     // Check connection first
@@ -249,7 +249,7 @@ export async function POST() {
     }
     
     const allTestsPassed = Object.values(testResults.assetTests).every(
-      test => test.status === 'passed'
+      test => (test as { status: string }).status === 'passed'
     );
     
     return NextResponse.json({

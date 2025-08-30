@@ -167,11 +167,11 @@ export async function downloadFile(key: string): Promise<Buffer> {
     }
     
     // Convert stream to buffer
-    const chunks: Uint8Array[] = [];
-    const stream = response.Body as any;
+    const chunks: Buffer[] = [];
+    const stream = response.Body as NodeJS.ReadableStream;
     
     for await (const chunk of stream) {
-      chunks.push(chunk);
+      chunks.push(Buffer.from(chunk));
     }
     
     const buffer = Buffer.concat(chunks);
