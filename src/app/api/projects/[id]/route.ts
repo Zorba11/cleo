@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const { userId } = await auth();
-    
+
     if (!userId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -17,17 +17,17 @@ export async function GET(
     }
 
     const { id } = await params;
-    
+
     // Get project with planning data if it's planned
     const project = await getProjectForUser(id, userId);
-    
+
     if (!project) {
       return NextResponse.json(
         { success: false, error: 'Project not found' },
         { status: 404 }
       );
     }
-    
+
     // If project is planned, include planning data
     let projectData = project;
     if (project.status === 'PLANNED') {
@@ -38,17 +38,23 @@ export async function GET(
       }
     }
 
+    // Convert BigInt fields (e.g., Asset.bytes) to numbers for JSON serialization
+    const safeData = JSON.parse(
+      JSON.stringify(projectData, (_key, value) =>
+        typeof value === 'bigint' ? Number(value) : value
+      )
+    );
+
     return NextResponse.json({
       success: true,
-      data: projectData
+      data: safeData,
     });
-    
   } catch (error) {
     console.error('Failed to fetch project:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Internal server error' 
+      {
+        success: false,
+        error: 'Internal server error',
       },
       { status: 500 }
     );
