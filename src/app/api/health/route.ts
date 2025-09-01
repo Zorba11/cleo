@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { checkDatabaseConnection } from '@/lib/db';
 import { checkR2Connection } from '@/lib/storage';
 import { testOpenAIConnection } from '@/lib/llm';
+import { testElevenLabsConnection } from '@/lib/narration';
 
 export async function GET() {
   try {
@@ -22,12 +23,23 @@ export async function GET() {
     // Check OpenAI connectivity
     let llmHealthy = false;
     let llmError = null;
-    
+
     try {
       llmHealthy = await testOpenAIConnection();
     } catch (error) {
       llmError = error instanceof Error ? error.message : 'Unknown LLM error';
       console.warn('OpenAI health check failed:', llmError);
+    }
+
+    // Check ElevenLabs connectivity
+    let elevenLabsHealthy = false;
+    let elevenLabsError = null;
+
+    try {
+      elevenLabsHealthy = await testElevenLabsConnection();
+    } catch (error) {
+      elevenLabsError = error instanceof Error ? error.message : 'Unknown ElevenLabs error';
+      console.warn('ElevenLabs health check failed:', elevenLabsError);
     }
     
     // Check environment variables
@@ -40,26 +52,30 @@ export async function GET() {
       (process.env.CLOUDFLARE_R2_BUCKET_NAME || process.env.R2_BUCKET)
     );
     const hasOpenAIKey = !!process.env.OPENAI_API_KEY;
-    
+    const hasElevenLabsKey = !!process.env.ELEVENLABS_API_KEY;
+
     const healthStatus = {
-      status: (dbHealthy && hasClerkKeys && hasDatabaseUrl && storageHealthy && hasOpenAIKey) ? 'healthy' : 'degraded',
+      status: (dbHealthy && hasClerkKeys && hasDatabaseUrl && storageHealthy && hasOpenAIKey && elevenLabsHealthy) ? 'healthy' : 'degraded',
       timestamp: new Date().toISOString(),
       services: {
         api: 'operational',
         database: dbHealthy ? 'operational' : 'unavailable',
         auth: hasClerkKeys ? 'configured' : 'not_configured',
         storage: storageHealthy ? 'operational' : (hasR2Config ? 'unavailable' : 'not_configured'),
-        llm: llmHealthy ? 'operational' : (hasOpenAIKey ? 'unavailable' : 'not_configured')
+        llm: llmHealthy ? 'operational' : (hasOpenAIKey ? 'unavailable' : 'not_configured'),
+        elevenlabs: elevenLabsHealthy ? 'operational' : (hasElevenLabsKey ? 'unavailable' : 'not_configured')
       },
       environment: {
         node_env: process.env.NODE_ENV,
         database_configured: hasDatabaseUrl,
         auth_configured: hasClerkKeys,
         storage_configured: hasR2Config,
-        llm_configured: hasOpenAIKey
+        llm_configured: hasOpenAIKey,
+        elevenlabs_configured: hasElevenLabsKey
       },
       ...(storageError && { storage_error: storageError }),
-      ...(llmError && { llm_error: llmError })
+      ...(llmError && { llm_error: llmError }),
+      ...(elevenLabsError && { elevenlabs_error: elevenLabsError })
     };
 
     const statusCode = healthStatus.status === 'healthy' ? 200 : 503;

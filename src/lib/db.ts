@@ -564,3 +564,91 @@ export async function materializeFramesFromBeats(
     throw error;
   }
 }
+
+// Narration helpers
+
+export async function updateProjectStatusToNarrated(
+  projectId: string,
+  clerkId?: string
+) {
+  try {
+    const where = clerkId
+      ? { id: projectId, owner: { clerkId } }
+      : { id: projectId };
+
+    const project = await db.project.update({
+      where,
+      data: {
+        status: 'NARRATED',
+        updatedAt: new Date(),
+      },
+    });
+
+    console.log(`✅ Updated project ${projectId} status to NARRATED`);
+    return project;
+  } catch (error) {
+    console.error('Failed to update project status to NARRATED:', error);
+    throw error;
+  }
+}
+
+export async function trackNarrationProgress(
+  projectId: string,
+  phase:
+    | 'NARRATION_START'
+    | 'AUDIO_GENERATION'
+    | 'BATCH_AUDIO_GENERATION'
+    | 'NARRATION_COMPLETE',
+  status: 'IN_PROGRESS' | 'COMPLETED' | 'FAILED',
+  notes?: string
+) {
+  return trackAssetProgress(projectId, phase, status, notes);
+}
+
+export async function getProjectWithNarrationData(
+  projectId: string,
+  clerkId?: string
+) {
+  try {
+    const where = clerkId
+      ? { id: projectId, owner: { clerkId } }
+      : { id: projectId };
+
+    const project = await db.project.findFirst({
+      where,
+      include: {
+        beats: {
+          orderBy: { index: 'asc' },
+        },
+        assets: {
+          where: {
+            type: AssetType.AUDIO,
+            meta: {
+              path: ['kind'],
+              equals: 'narration',
+            },
+          },
+        },
+        progressEntries: {
+          where: {
+            phase: {
+              in: [
+                'NARRATION_START',
+                'AUDIO_GENERATION',
+                'BATCH_AUDIO_GENERATION',
+                'NARRATION_COMPLETE',
+              ],
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        },
+      },
+    });
+
+    return project;
+  } catch (error) {
+    console.error('Failed to get project with narration data:', error);
+    throw error;
+  }
+}

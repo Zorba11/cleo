@@ -85,7 +85,23 @@ Rules:
 - Beat summaries should describe visual concepts clearly
 - On-screen text should be concise and impactful
 - Color palette should have 3-5 colors including white/background
-- Timeline beats should not overlap and sum to total duration`;
+- Timeline beats should not overlap and sum to total duration
+
+ EXPRESSIVE DIALOGUE RULES FOR ELEVEN V3 (CRITICAL):
+ - Write dialogue text that is immediately suitable for ElevenLabs v3 Text-to-Speech.
+ - Keep the original meaning, but make delivery expressive and human.
+ - Use audio tags inline where appropriate (e.g., [whispers], [excited], [curious], [sighs], [laughs]).
+ - Use punctuation and capitalization to shape delivery:
+   - Ellipses … for natural pauses
+   - Occasional UPPERCASE for emphasis (sparingly)
+   - Normal punctuation for rhythm
+ - Keep tone professional and engaging (educational explainer). Avoid overdoing tags.
+ - DO NOT add sound-effect tags irrelevant to narration (e.g., [gunshot]).
+ - Prefer single-speaker style; avoid multi-speaker constructs.
+ - Ensure each dialogue segment remains 15–25 seconds when spoken and does not sound rushed.
+ - Examples of valid tags: [whispers], [excited], [curiously], [thoughtfully], [sighs], [laughs].
+ - Keep text clean JSON strings without newlines that break JSON structure.
+`;
 
 export async function generateProjectPlan(
   topic: string

@@ -359,6 +359,91 @@ interface ProjectPlanFile {
 
 ---
 
+## [2025-08-30 20:30] Phase 4 - Narration with Expressive Dialogues
+
+### Completed Tasks
+
+- [x] ElevenLabs JavaScript SDK integration (`@elevenlabs/elevenlabs-js`)
+- [x] Narration service with voice settings and audio generation (`src/lib/narration.ts`)
+- [x] POST `/api/narration` endpoint for generating audio files
+- [x] GET `/api/projects/[id]/narration` endpoint for fetching narration data
+- [x] Database functions for narration status tracking (`updateProjectStatusToNarrated`, `trackNarrationProgress`)
+- [x] Health check endpoint enhanced with ElevenLabs connectivity verification
+- [x] Complete UI integration in ProjectDetailClient.tsx with narration generation and status display
+- [x] **NEW**: Planning prompt updated to embed Eleven v3 best-practices; dialogue is expressive at source
+- [x] **NEW**: Narration API simplified to use plan dialogue directly (no mid-pipeline enhancement)
+
+### Expressive Dialogue (Plan-Time)
+
+- Dialogue text in the plan follows Eleven v3 best practices (audio tags like [whispers], punctuation, capitalization for emphasis).
+- No separate enhancement step; TTS uses plan dialogue directly.
+
+**UI Changes:**
+
+- Removed enhancement comparison UI (no longer needed).
+- Audio file management and narration progress retained.
+
+### Technical Implementation
+
+**Narration Service (`src/lib/narration.ts`):**
+
+```typescript
+// Key functions added:
+- generateAudio() - ElevenLabs v3 audio generation
+- generateBatchAudio() - Efficient batch processing
+- testElevenLabsConnection() - Service health verification
+```
+
+**API Endpoints:**
+
+- `POST /api/narration` - Audio generation using expressive plan dialogues
+- `GET /api/projects/[id]/narration` - Narration data and audio listing
+
+**Database Schema:**
+
+- Added NARRATED status to ProjectStatus enum
+- Audio assets tracked with metadata (voiceId, duration, dialogueIndex)
+- Progress tracking for narration phases
+
+### Voice Settings & Quality
+
+**Default Configuration:**
+
+- Voice: Rachel (21m00Tcm4TlvDq8ikWAM) - Professional female voice
+- Model: eleven_multilingual_v2 - Stable multilingual model
+- Quality: MP3 44.1kHz 128kbps - Good balance of quality/size
+- Stability: 0.8 - Consistent but natural delivery
+- Similarity Boost: 0.9 - High voice similarity
+- Style: 0.7 - Balanced expressiveness
+
+**Voice Recommendations:**
+
+- Explainer videos: Rachel, Dora, Bella, Antoni
+- Educational content: Rachel, Dora, Antoni
+- Corporate: Rachel, Antoni, Adam
+
+### PHASE 4 COMPLETE ✅
+
+**Ready for Review Checklist:**
+
+- [x] ElevenLabs API integration working
+- [x] Dialogue enhancement using GPT-5-mini
+- [x] Audio generation with proper voice settings
+- [x] UI showing enhancement comparisons
+- [x] Project status progression to NARRATED
+- [x] Health checks include ElevenLabs connectivity
+- [x] Comprehensive error handling and progress tracking
+- [x] Audio files properly stored and accessible
+- [x] TypeScript types properly defined and used
+- [x] All linting errors resolved
+
+### Next Steps
+
+- Phase 4 review and approval checkpoint
+- Begin Phase 5 - Cue Sheet Generation (timeline mapping for frames and text overlays)
+
+---
+
 ## Template for Future Phases
 
 ```markdown

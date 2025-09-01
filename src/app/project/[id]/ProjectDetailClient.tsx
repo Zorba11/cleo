@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -29,7 +28,7 @@ interface Beat {
 
 interface StyleBible {
   id: string;
-  json: any;
+  json: unknown;
 }
 
 interface Asset {
@@ -51,10 +50,10 @@ interface PlanResponse {
   success: boolean;
   data?: {
     planResponse: {
-      dialogueInputs: any[];
-      beats: any[];
-      styleBibleMin: any;
-      timelineSkeleton: any;
+      dialogueInputs: unknown[];
+      beats: unknown[];
+      styleBibleMin: unknown;
+      timelineSkeleton: unknown;
     };
     storage: {
       projectPlanKey: string;
@@ -68,6 +67,59 @@ interface PlanResponse {
   };
   error?: string;
 }
+
+interface NarrationResponse {
+  success: boolean;
+  data?: {
+    projectId: string;
+    dialogueIndex?: number;
+    audio?: {
+      key: string;
+      url: string;
+      duration?: number;
+    };
+    voiceId: string;
+    status: string;
+    audioResults?: Record<
+      string,
+      { key: string; url: string; duration?: number }
+    >;
+    metadata?: {
+      totalDialogues: number;
+      successfulGenerations: number;
+      generatedAt: string;
+    };
+  };
+  error?: string;
+}
+
+interface NarrationData {
+  projectId: string;
+  status: string;
+  totalDialogues: number;
+  narratedDialogues: number;
+  audioFiles: {
+    id: string;
+    dialogueIndex?: number;
+    filename: string;
+    r2Key: string;
+    duration?: number;
+    voiceId?: string;
+    bytes: number;
+    createdAt: string;
+  }[];
+  beats: {
+    id: string;
+    index: number;
+    summary: string;
+    onScreenText?: string;
+    durationS?: number;
+    hasAudio: boolean;
+    audioFile?: string;
+  }[];
+}
+
+// Enhancement type removed — dialogues are generated expressive in plan
 
 const statusLabels = {
   PLANNED: 'Planned',
@@ -97,13 +149,19 @@ export default function ProjectDetailClient({
   const [error, setError] = useState('');
   const [planLoading, setPlanLoading] = useState(false);
   const [planResult, setPlanResult] = useState<PlanResponse | null>(null);
-  const [fullPlan, setFullPlan] = useState<any | null>(null);
+  const [fullPlan, setFullPlan] = useState<unknown | null>(null);
   const [fullPlanLoading, setFullPlanLoading] = useState(false);
   const [framesBusy, setFramesBusy] = useState(false);
   const [planOpen, setPlanOpen] = useState(true);
+  const [narrationLoading, setNarrationLoading] = useState(false);
+  const [narrationResult, setNarrationResult] =
+    useState<NarrationResponse | null>(null);
+  const [narrationData, setNarrationData] = useState<NarrationData | null>(
+    null
+  );
+  // Enhancement preview removed; dialogues are now generated expressive in plan
 
   const { user } = useUser();
-  const router = useRouter();
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -206,6 +264,80 @@ export default function ProjectDetailClient({
       setFramesBusy(false);
     }
   };
+
+  const handleGenerateNarration = async () => {
+    if (!project) return;
+
+    setNarrationLoading(true);
+    setNarrationResult(null);
+
+    try {
+      const response = await fetch('/api/narration', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          projectId: project.id,
+        }),
+      });
+
+      const result = await response.json();
+      setNarrationResult(result);
+
+      if (result.success) {
+        // Refresh project data to show updated status
+        const projectResponse = await fetch(`/api/projects/${projectId}`);
+        if (projectResponse.ok) {
+          const projectData = await projectResponse.json();
+          setProject(projectData.data);
+        }
+
+        // Refresh narration data
+        fetchNarrationData();
+      }
+    } catch (err) {
+      setNarrationResult({
+        success: false,
+        error:
+          err instanceof Error ? err.message : 'Failed to generate narration',
+      });
+    } finally {
+      setNarrationLoading(false);
+    }
+  };
+
+  const fetchNarrationData = useCallback(async () => {
+    if (!project) return;
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}/narration`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setNarrationData(data.data);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch narration data:', err);
+    }
+  }, [project, projectId]);
+
+  // Fetch narration data when project status is NARRATED or higher
+  useEffect(() => {
+    if (
+      project &&
+      [
+        'NARRATED',
+        'ALIGNED',
+        'CUES_READY',
+        'FRAMES_READY',
+        'ASSEMBLED',
+      ].includes(project.status)
+    ) {
+      fetchNarrationData();
+    }
+  }, [project, projectId, fetchNarrationData]);
 
   if (loading) {
     return (
@@ -387,7 +519,231 @@ export default function ProjectDetailClient({
             </div>
           )}
         </div>
+
+        {/* Narration Section */}
+        {project.status === 'PLANNED' &&
+          project.beats &&
+          project.beats.length > 0 && (
+            <div className="border rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-md font-medium text-gray-900">
+                    🎵 AI Narration
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Generate professional voice narration using ElevenLabs TTS
+                  </p>
+                </div>
+                <button
+                  onClick={handleGenerateNarration}
+                  disabled={narrationLoading || project.status !== 'PLANNED'}
+                  className="px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-transparent rounded-md shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {narrationLoading ? (
+                    <>
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Generating Narration...
+                    </>
+                  ) : (
+                    'Generate Narration with ElevenLabs'
+                  )}
+                </button>
+              </div>
+
+              {/* Narration Result */}
+              {narrationResult && (
+                <div
+                  className={`mt-4 p-4 rounded-lg ${
+                    narrationResult.success
+                      ? 'bg-green-50 border border-green-200'
+                      : 'bg-red-50 border border-red-200'
+                  }`}
+                >
+                  {narrationResult.success ? (
+                    <div>
+                      <div className="flex items-center">
+                        <svg
+                          className="h-5 w-5 text-green-400 mr-2"
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <h4 className="text-sm font-medium text-green-800">
+                          Narration Generated Successfully!
+                        </h4>
+                      </div>
+                      {narrationResult.data && (
+                        <div className="mt-2 text-sm text-green-700">
+                          <p>✅ Project status updated to NARRATED</p>
+                          <p>
+                            <strong>Audio Files Generated:</strong>{' '}
+                            {narrationResult.data.audioResults
+                              ? Object.keys(narrationResult.data.audioResults)
+                                  .length
+                              : 0}
+                          </p>
+                          {narrationResult.data.metadata && (
+                            <div className="mt-1">
+                              <p>
+                                <strong>Total Dialogues:</strong>{' '}
+                                {narrationResult.data.metadata.totalDialogues}
+                              </p>
+                              <p>
+                                <strong>Successful Generations:</strong>{' '}
+                                {
+                                  narrationResult.data.metadata
+                                    .successfulGenerations
+                                }
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center">
+                        <svg
+                          className="h-5 w-5 text-red-400 mr-2"
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <h4 className="text-sm font-medium text-red-800">
+                          Narration Generation Failed
+                        </h4>
+                      </div>
+                      <p className="mt-2 text-sm text-red-700">
+                        {narrationResult.error}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
       </div>
+
+      {/* Narration Details */}
+      {narrationData &&
+        narrationData.audioFiles &&
+        narrationData.audioFiles.length > 0 && (
+          <div className="mb-8 bg-white shadow rounded-lg p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">
+              🎵 Narration Details
+            </h2>
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center mb-2">
+                <svg
+                  className="h-5 w-5 text-purple-400 mr-2"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <h3 className="text-sm font-medium text-purple-800">
+                  Narration Generated
+                </h3>
+              </div>
+              <div className="text-sm text-purple-700">
+                <p>
+                  <strong>Audio Files:</strong>{' '}
+                  {narrationData.audioFiles.length}
+                </p>
+                <p>
+                  <strong>Voice Used:</strong>{' '}
+                  {narrationData.audioFiles[0]?.voiceId || 'Default'}
+                </p>
+                <p>
+                  <strong>Total Duration:</strong>{' '}
+                  {narrationData.audioFiles.reduce(
+                    (sum: number, file) => sum + (file.duration || 0),
+                    0
+                  )}
+                  s
+                </p>
+              </div>
+            </div>
+
+            {/* Dialogues are already generated expressive via plan; no enhancement preview */}
+
+            <div className="space-y-3">
+              <h3 className="text-md font-medium text-gray-900">
+                🎵 Audio Files
+              </h3>
+              {narrationData.audioFiles.map((file) => (
+                <div
+                  key={file.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+                >
+                  <div>
+                    <p className="font-medium text-gray-900">{file.filename}</p>
+                    <p className="text-xs text-gray-500">
+                      Dialogue {file.dialogueIndex} • {file.duration || 0}s •{' '}
+                      {file.bytes} bytes
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {'downloadUrl' in file && file.downloadUrl ? (
+                      <audio
+                        controls
+                        src={(file as any).downloadUrl}
+                        className="h-8"
+                      >
+                        Your browser does not support the audio element.
+                      </audio>
+                    ) : (
+                      <button
+                        className="text-purple-600 hover:text-purple-800 text-sm underline"
+                        onClick={() =>
+                          window.open(`/api/projects/${projectId}/narration`)
+                        }
+                      >
+                        ▶️ Play
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
       {/* Existing Plan Details */}
       {project.status === 'PLANNED' &&
@@ -599,33 +955,86 @@ export default function ProjectDetailClient({
                 <div className="space-y-2">
                   {project.assets
                     .filter((asset) => asset.type === 'DOC')
-                    .map((asset) => (
-                      <div
-                        key={asset.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
-                      >
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {asset.label}
-                          </p>
-                          <p className="text-xs text-gray-500 font-mono">
-                            {asset.r2Key}
-                          </p>
-                        </div>
-                        <svg
-                          className="h-4 w-4 text-gray-400"
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
+                    .map((asset) => {
+                      const isPlan =
+                        asset.label === 'ProjectPlan.json' ||
+                        asset.r2Key.endsWith('/plan/ProjectPlan.json');
+                      const isStyle =
+                        asset.label === 'StyleBible.min.json' ||
+                        asset.r2Key.endsWith('/plan/StyleBible.min.json');
+                      const meta = (
+                        asset as unknown as { meta?: { active?: boolean } }
+                      ).meta as { active?: boolean } | undefined;
+                      const active = meta?.active === true;
+                      return (
+                        <div
+                          key={asset.id}
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
                         >
-                          <path
-                            fillRule="evenodd"
-                            d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </div>
-                    ))}
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {asset.label}
+                            </p>
+                            <p className="text-xs text-gray-500 font-mono">
+                              {asset.r2Key}
+                            </p>
+                            <p
+                              className={`mt-1 text-xs ${
+                                active ? 'text-green-700' : 'text-gray-500'
+                              }`}
+                            >
+                              {active ? 'Active' : 'Inactive'}
+                              {isPlan
+                                ? ' (Plan)'
+                                : isStyle
+                                ? ' (Style Bible)'
+                                : ''}
+                            </p>
+                          </div>
+
+                          {(isPlan || isStyle) && !active && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await fetch(
+                                    `/api/projects/${projectId}/plan`,
+                                    {
+                                      method: 'POST',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                      },
+                                      body: JSON.stringify({
+                                        planAssetId: isPlan
+                                          ? asset.id
+                                          : undefined,
+                                        styleAssetId: isStyle
+                                          ? asset.id
+                                          : undefined,
+                                      }),
+                                    }
+                                  );
+                                  const res = await fetch(
+                                    `/api/projects/${projectId}`
+                                  );
+                                  if (res.ok) {
+                                    const data = await res.json();
+                                    setProject(data.data);
+                                  }
+                                } catch (e) {
+                                  console.warn(
+                                    'Failed to set active plan/style:',
+                                    e
+                                  );
+                                }
+                              }}
+                              className="inline-flex items-center px-2 py-1 rounded bg-indigo-600 text-white text-xs hover:bg-indigo-700"
+                            >
+                              Set Active
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
                 </div>
               </div>
             )}
